@@ -4,22 +4,110 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <ctype.h>
 
 #define PORT 8080
-#define BUFFER_SIZE 1024
+#define BUFFER_SIZE 4096
+#define MAX_FILE_SIZE 1048576  // 1MB max file size
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
 
+// Your custom processing function - replace the contents with your logic
+char* process_request(const char* input, size_t input_len, size_t* output_len) {
+    // Example: converts text to uppercase
+    // Replace this with your actual processing logic
+    char* result = malloc(input_len + 1);
+    if (!result) return NULL;
+    
+    for (size_t i = 0; i < input_len; i++) {
+        result[i] = toupper(input[i]);
+    }
+    result[input_len] = '\0';
+    *output_len = input_len;
+    
+    return result;
+}
+
+// Receives the complete file from client
+char* receive_file(int client_socket, size_t* file_size) {
+    char* file_content = malloc(MAX_FILE_SIZE);
+    if (!file_content) {
+        return NULL;
+    }
+    
+    // First receive the file size
+    ssize_t size_read = read(client_socket, file_size, sizeof(size_t));
+    if (size_read != sizeof(size_t) || *file_size > MAX_FILE_SIZE) {
+        free(file_content);
+        return NULL;
+    }
+    
+    // Then receive the file content
+    size_t total_bytes = 0;
+    while (total_bytes < *file_size) {
+        ssize_t bytes_received = read(client_socket, 
+                                    file_content + total_bytes,
+                                    MIN(BUFFER_SIZE, *file_size - total_bytes));
+        
+        if (bytes_received <= 0) {
+            free(file_content);
+            return NULL;
+        }
+        total_bytes += bytes_received;
+    }
+    
+    file_content[*file_size] = '\0';
+    return file_content;
+}
+
+// Sends the response file back to client
+void send_response(int client_socket, const char* response, size_t response_size) {
+    // First send the size
+    write(client_socket, &response_size, sizeof(size_t));
+    
+    // Then send the content in chunks if necessary
+    size_t total_sent = 0;
+    while (total_sent < response_size) {
+        ssize_t sent = write(client_socket, 
+                            response + total_sent,
+                            MIN(BUFFER_SIZE, response_size - total_sent));
+        
+        if (sent <= 0) break;
+        total_sent += sent;
+    }
+}
+
+// Handles each client connection
 void handle_client(int client_socket) {
-    char buffer[BUFFER_SIZE];
-    char response[] = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\nHello from C server!";
+    size_t request_size;
+    char* request = receive_file(client_socket, &request_size);
     
-    // Read client request
-    read(client_socket, buffer, BUFFER_SIZE);
-    printf("Received request:\n%s\n", buffer);
+    if (!request) {
+        const char* error = "Error receiving file";
+        size_t error_len = strlen(error);
+        send_response(client_socket, error, error_len);
+        close(client_socket);
+        return;
+    }
     
-    // Send response
-    write(client_socket, response, strlen(response));
+    // Process the request
+    size_t response_size;
+    char* response = process_request(request, request_size, &response_size);
     
-    // Close client socket
+    if (!response) {
+        const char* error = "Error processing request";
+        size_t error_len = strlen(error);
+        send_response(client_socket, error, error_len);
+        free(request);
+        close(client_socket);
+        return;
+    }
+    
+    // Send the response
+    send_response(client_socket, response, response_size);
+    
+    // Clean up
+    free(request);
+    free(response);
     close(client_socket);
 }
 
@@ -36,7 +124,8 @@ int main() {
     }
     
     // Set socket options
-    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))) {
+    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, 
+                   &opt, sizeof(opt))) {
         perror("Setsockopt failed");
         exit(EXIT_FAILURE);
     }
