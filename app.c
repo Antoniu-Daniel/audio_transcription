@@ -8,13 +8,11 @@
 
 #define PORT 8080
 #define BUFFER_SIZE 4096
-#define MAX_FILE_SIZE 1048576  // 1MB max file size
-#define MIN(a,b) ((a) < (b) ? (a) : (b))
+#define MAX_FILE_SIZE 1048576
 
-// Your custom processing function - replace the contents with your logic
+// Your custom processing function - Replace this with your own logic
 char* process_request(const char* input, size_t input_len, size_t* output_len) {
-    // Example: converts text to uppercase
-    // Replace this with your actual processing logic
+    // Example processing (converts to uppercase)
     char* result = malloc(input_len + 1);
     if (!result) return NULL;
     
@@ -27,86 +25,105 @@ char* process_request(const char* input, size_t input_len, size_t* output_len) {
     return result;
 }
 
-// Receives the complete file from client
-char* receive_file(int client_socket, size_t* file_size) {
-    char* file_content = malloc(MAX_FILE_SIZE);
-    if (!file_content) {
-        return NULL;
-    }
+// Extract the POST data from HTTP request
+char* get_post_data(const char* request, size_t* data_len) {
+    const char* body = strstr(request, "\r\n\r\n");
+    if (!body) return NULL;
     
-    // First receive the file size
-    ssize_t size_read = read(client_socket, file_size, sizeof(size_t));
-    if (size_read != sizeof(size_t) || *file_size > MAX_FILE_SIZE) {
-        free(file_content);
-        return NULL;
-    }
+    body += 4;  // Skip \r\n\r\n
+    *data_len = strlen(body);
     
-    // Then receive the file content
-    size_t total_bytes = 0;
-    while (total_bytes < *file_size) {
-        ssize_t bytes_received = read(client_socket, 
-                                    file_content + total_bytes,
-                                    MIN(BUFFER_SIZE, *file_size - total_bytes));
-        
-        if (bytes_received <= 0) {
-            free(file_content);
-            return NULL;
-        }
-        total_bytes += bytes_received;
-    }
+    char* data = malloc(*data_len + 1);
+    if (!data) return NULL;
     
-    file_content[*file_size] = '\0';
-    return file_content;
+    strcpy(data, body);
+    return data;
 }
 
-// Sends the response file back to client
-void send_response(int client_socket, const char* response, size_t response_size) {
-    // First send the size
-    write(client_socket, &response_size, sizeof(size_t));
+// Send HTTP response with headers and content
+void send_http_response(int client_socket, const char* content, size_t content_len) {
+    char header[512];
+    snprintf(header, sizeof(header),
+        "HTTP/1.1 200 OK\r\n"
+        "Content-Type: text/plain\r\n"
+        "Content-Length: %zu\r\n"
+        "Access-Control-Allow-Origin: *\r\n"
+        "Access-Control-Allow-Methods: POST, OPTIONS\r\n"
+        "Access-Control-Allow-Headers: Content-Type\r\n"
+        "\r\n", content_len);
     
-    // Then send the content in chunks if necessary
-    size_t total_sent = 0;
-    while (total_sent < response_size) {
-        ssize_t sent = write(client_socket, 
-                            response + total_sent,
-                            MIN(BUFFER_SIZE, response_size - total_sent));
-        
-        if (sent <= 0) break;
-        total_sent += sent;
-    }
+    write(client_socket, header, strlen(header));
+    write(client_socket, content, content_len);
 }
 
-// Handles each client connection
+// Handle CORS preflight requests
+void handle_options(int client_socket) {
+    const char* response =
+        "HTTP/1.1 200 OK\r\n"
+        "Access-Control-Allow-Origin: *\r\n"
+        "Access-Control-Allow-Methods: POST, OPTIONS\r\n"
+        "Access-Control-Allow-Headers: Content-Type\r\n"
+        "Content-Length: 0\r\n"
+        "\r\n";
+    
+    write(client_socket, response, strlen(response));
+}
+
+// Handle each client connection
 void handle_client(int client_socket) {
-    size_t request_size;
-    char* request = receive_file(client_socket, &request_size);
+    char buffer[MAX_FILE_SIZE];
+    ssize_t bytes_received = read(client_socket, buffer, MAX_FILE_SIZE - 1);
     
-    if (!request) {
-        const char* error = "Error receiving file";
-        size_t error_len = strlen(error);
-        send_response(client_socket, error, error_len);
+    if (bytes_received <= 0) {
         close(client_socket);
         return;
     }
     
-    // Process the request
-    size_t response_size;
-    char* response = process_request(request, request_size, &response_size);
+    buffer[bytes_received] = '\0';
+    
+    // Handle CORS preflight request
+    if (strncmp(buffer, "OPTIONS", 7) == 0) {
+        handle_options(client_socket);
+        close(client_socket);
+        return;
+    }
+    
+    // Verify POST method
+    if (strncmp(buffer, "POST", 4) != 0) {
+        const char* error = "Only POST method is supported";
+        send_http_response(client_socket, error, strlen(error));
+        close(client_socket);
+        return;
+    }
+    
+    // Get POST data
+    size_t data_len;
+    char* data = get_post_data(buffer, &data_len);
+    
+    if (!data) {
+        const char* error = "Error parsing request";
+        send_http_response(client_socket, error, strlen(error));
+        close(client_socket);
+        return;
+    }
+    
+    // Process the request using custom function
+    size_t response_len;
+    char* response = process_request(data, data_len, &response_len);
     
     if (!response) {
         const char* error = "Error processing request";
-        size_t error_len = strlen(error);
-        send_response(client_socket, error, error_len);
-        free(request);
+        send_http_response(client_socket, error, strlen(error));
+        free(data);
         close(client_socket);
         return;
     }
     
-    // Send the response
-    send_response(client_socket, response, response_size);
+    // Send response
+    send_http_response(client_socket, response, response_len);
     
     // Clean up
-    free(request);
+    free(data);
     free(response);
     close(client_socket);
 }
@@ -117,7 +134,7 @@ int main() {
     int opt = 1;
     int addrlen = sizeof(address);
     
-    // Create socket file descriptor
+    // Create socket
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
         perror("Socket creation failed");
         exit(EXIT_FAILURE);
@@ -130,18 +147,18 @@ int main() {
         exit(EXIT_FAILURE);
     }
     
-    // Setup server address structure
+    // Configure server address
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = INADDR_ANY;
     address.sin_port = htons(PORT);
     
-    // Bind socket to the specified port
+    // Bind socket
     if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) {
         perror("Bind failed");
         exit(EXIT_FAILURE);
     }
     
-    // Listen for incoming connections
+    // Listen for connections
     if (listen(server_fd, 3) < 0) {
         perror("Listen failed");
         exit(EXIT_FAILURE);
@@ -149,15 +166,14 @@ int main() {
     
     printf("Server listening on port %d...\n", PORT);
     
+    // Main server loop
     while(1) {
-        // Accept incoming connection
         if ((client_socket = accept(server_fd, (struct sockaddr *)&address, 
                                   (socklen_t*)&addrlen)) < 0) {
             perror("Accept failed");
             continue;
         }
         
-        // Handle client connection
         handle_client(client_socket);
     }
     
