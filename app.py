@@ -21,7 +21,9 @@ MODEL_SIZES = {
     "tiny": "ggml-tiny.bin",
     "tiny.en": "ggml-tiny.en.bin",
     "base": "ggml-base.bin",
+    "base.en": "ggml-base.en.bin",
     "small": "ggml-small.bin",
+    "small.en": "ggml-small.en.bin",
     "medium": "ggml-medium.bin",
     "large-v1": "ggml-large-v1.bin",
     "large-v3-turbo-q8_0": "ggml-large-v3-turbo-q8_0.bin"
