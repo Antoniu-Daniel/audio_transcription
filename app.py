@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 # Path to the whisper.cpp executable
 WHISPER_CPP_EXEC = "../../whisper.cpp/build/bin/whisper-cli"  # Update with the correct path if needed
-MODEL_PATH = "../../whisper.cpp/models/ggml-medium.bin"  # Update with your model path
+MODEL_PATH = "../../whisper.cpp/models/ggml-small.bin"  # Update with your model path
 
 # Upload folder for audio files
 UPLOAD_FOLDER = "/tmp/uploads"
