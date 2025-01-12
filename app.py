@@ -14,11 +14,11 @@ logger = logging.getLogger(__name__)
 
 # Path to the whisper.cpp executable
 WHISPER_CPP_EXEC = "../../whisper.cpp/build/bin/whisper-cli"  # Update with the correct path if needed
-MODEL_PATH = "../../whisper.cpp/models/ggml-small.bin"  # Update with your model path
+MODEL_PATH = "../../whisper.cpp/models/ggml-large.bin"  # Update with your model path
 
 # Upload folder for audio files
-UPLOAD_FOLDER = "uploads"
-CONVERTED_FOLDER = "converted"
+UPLOAD_FOLDER = "/tmp/uploads"
+CONVERTED_FOLDER = "/tmp/converted"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(CONVERTED_FOLDER, exist_ok=True)
 
@@ -109,7 +109,7 @@ def transcribe():
             # Run whisper.cpp transcription
             logger.info("Starting transcription process")
             result = subprocess.run(
-                [WHISPER_CPP_EXEC, "-m", MODEL_PATH, "--language", "Romanian", "--output-txt", "-f", output_path],
+                [WHISPER_CPP_EXEC, "-m", MODEL_PATH, "--language", "ro", "--output-txt", "-f", output_path],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
