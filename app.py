@@ -13,8 +13,23 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Path to the whisper.cpp executable
-WHISPER_CPP_EXEC = "../../whisper.cpp/build/bin/whisper-cli"  # Update with the correct path if needed
-MODEL_PATH = "../../whisper.cpp/models/ggml-medium.bin"  # Update with your model path
+WHISPER_CPP_EXEC = "../../whisper.cpp/build/bin/whisper-cli"
+
+# Model configuration
+MODEL_BASE_PATH = "../../whisper.cpp/models"
+MODEL_SIZES = {
+    "tiny": "ggml-tiny.bin",
+    "base": "ggml-base.bin",
+    "small": "ggml-small.bin",
+    "medium": "ggml-medium.bin",
+    "large": "ggml-large.bin"
+}
+
+# Language configuration
+SUPPORTED_LANGUAGES = {
+    "en": "english",
+    "ro": "romanian"
+}
 
 # Upload folder for audio files
 UPLOAD_FOLDER = "/tmp/uploads"
@@ -27,6 +42,22 @@ ALLOWED_EXTENSIONS = {'wav', 'mp3', 'ogg', 'm4a', 'flac'}
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def get_model_path(model_size):
+    """
+    Get the full path for the specified model size
+    """
+    if model_size not in MODEL_SIZES:
+        raise ValueError(f"Invalid model size: {model_size}")
+    return os.path.join(MODEL_BASE_PATH, MODEL_SIZES[model_size])
+
+def validate_language(language):
+    """
+    Validate the specified language
+    """
+    if language not in SUPPORTED_LANGUAGES:
+        raise ValueError(f"Unsupported language: {language}")
+    return SUPPORTED_LANGUAGES[language]
 
 def convert_to_wav(input_path, output_path):
     """
@@ -64,14 +95,29 @@ def convert_to_wav(input_path, output_path):
 @app.route("/transcribe", methods=["POST"])
 def transcribe():
     try:
+        # Validate model size and language
+        model_size = request.form.get('model_size')
+        language = request.form.get('language')
+
+        if not model_size:
+            return jsonify({"error": "Model size not specified"}), 400
+        if not language:
+            return jsonify({"error": "Language not specified"}), 400
+
+        try:
+            model_path = get_model_path(model_size)
+            language = validate_language(language)
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
+
         # Check if executable and model exist
         if not os.path.isfile(WHISPER_CPP_EXEC):
             logger.error(f"Whisper executable not found at {WHISPER_CPP_EXEC}")
             return jsonify({"error": "Transcription service not properly configured"}), 500
 
-        if not os.path.isfile(MODEL_PATH):
-            logger.error(f"Model file not found at {MODEL_PATH}")
-            return jsonify({"error": "Transcription model not found"}), 500
+        if not os.path.isfile(model_path):
+            logger.error(f"Model file not found at {model_path}")
+            return jsonify({"error": f"Transcription model {model_size} not found"}), 500
 
         # Check for FFmpeg installation
         try:
@@ -107,9 +153,9 @@ def transcribe():
             logger.info(f"Converted to WAV: {output_path}")
 
             # Run whisper.cpp transcription
-            logger.info("Starting transcription process")
+            logger.info(f"Starting transcription process with model {model_size} and language {language}")
             result = subprocess.run(
-                [WHISPER_CPP_EXEC, "-m", MODEL_PATH, "--language", "ro", "--output-txt", "-f", output_path],
+                [WHISPER_CPP_EXEC, "-m", model_path, "--language", language, "--output-txt", "-f", output_path],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
