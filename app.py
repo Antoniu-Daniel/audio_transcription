@@ -19,10 +19,12 @@ WHISPER_CPP_EXEC = "../../whisper.cpp/build/bin/whisper-cli"
 MODEL_BASE_PATH = "../../whisper.cpp/models"
 MODEL_SIZES = {
     "tiny": "ggml-tiny.bin",
+    "tiny.en": "ggml-tiny.en.bin",
     "base": "ggml-base.bin",
     "small": "ggml-small.bin",
     "medium": "ggml-medium.bin",
-    "large": "ggml-large.bin"
+    "large-v1": "ggml-large-v1.bin",
+    "large-v3-turbo-q8_0": "ggml-large-v3-turbo-q8_0.bin"
 }
 
 # Language configuration
