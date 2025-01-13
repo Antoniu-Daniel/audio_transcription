@@ -13,10 +13,10 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Path to the whisper.cpp executable
-WHISPER_CPP_EXEC = "../../whisper.cpp/build/bin/whisper-cli"
+WHISPER_CPP_EXEC = "../whisper.cpp/build/bin/whisper-cli"
 
 # Model configuration
-MODEL_BASE_PATH = "../../whisper.cpp/models"
+MODEL_BASE_PATH = "../whisper.cpp/models"
 MODEL_SIZES = {
     "tiny": "ggml-tiny.bin",
     "tiny-q5_1": "ggml-tiny-q5_1.bin",
@@ -165,7 +165,7 @@ def transcribe():
             # Run whisper.cpp transcription
             logger.info(f"Starting transcription process with model {model_size} and language {language}")
             result = subprocess.run(
-                [WHISPER_CPP_EXEC, "-m", model_path, "--language", language, "--output-txt", "-f", output_path],
+                [WHISPER_CPP_EXEC, "-m", model_path, "-l" language,  "-nt", "--output-txt", "-f", output_path],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
