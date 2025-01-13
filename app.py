@@ -23,6 +23,7 @@ MODEL_SIZES = {
     "tiny.en": "ggml-tiny.en.bin",
     "base": "ggml-base.bin",
     "base-q5_1": "ggml-base-q5_1.bin",
+    "base-q8_0": "ggml-base-q8_0.bin",
     "base.en": "ggml-base.en.bin",
     "small": "ggml-small.bin",
     "small-q5_1": "ggml-small-q5_1.bin",
