@@ -3,200 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Romanian Speech Recognition</title>
+    <title>Audio Transcription App</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
+            margin: 20px;
         }
-        .container {
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .controls {
-            display: flex;
-            gap: 10px;
+        form {
             margin-bottom: 20px;
         }
-        button {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: background-color 0.3s;
-        }
-        #recordButton {
-            background-color: #ff4444;
-            color: white;
-        }
-        #recordButton.recording {
-            background-color: #cc0000;
-        }
-        #uploadButton {
-            background-color: #4CAF50;
-            color: white;
-        }
-        #fileInput {
-            display: none;
-        }
-        .status {
-            margin: 10px 0;
-            padding: 10px;
-            border-radius: 4px;
-        }
-        .transcription {
+        .output {
             margin-top: 20px;
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            background-color: #f9f9f9;
-            min-height: 100px;
-        }
-        #timer {
-            margin-left: 10px;
-            color: #666;
-        }
-        .loading {
-            display: none;
-            margin: 10px 0;
-            color: #666;
-        }
-        .loading:after {
-            content: '...';
-            animation: dots 1.5s steps(5, end) infinite;
-        }
-        @keyframes dots {
-            0%, 20% { content: '.'; }
-            40% { content: '..'; }
-            60% { content: '...'; }
-            80%, 100% { content: ''; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Romanian Speech Recognition</h1>
-        <p>Record audio or upload a file for Romanian speech recognition.</p>
-        
-        <div class="controls">
-            <button id="recordButton">Start Recording</button>
-            <span id="timer"></span>
-            <button id="uploadButton">Upload Audio File</button>
-            <input type="file" id="fileInput" accept="audio/*">
-        </div>
-        
-        <div id="loading" class="loading">Processing audio</div>
-        
-        <div class="transcription">
-            <h3>Transcription:</h3>
-            <p id="transcriptionText">Your transcription will appear here...</p>
-        </div>
+    <h1>Audio Transcription App</h1>
+    <form id="uploadForm" enctype="multipart/form-data">
+        <label for="audioFile">Upload an audio file (e.g., WAV, MP3):</label>
+        <input type="file" id="audioFile" name="audio" accept="audio/*" required>
+        <button type="submit">Transcribe</button>
+    </form>
+    <div class="output">
+        <h3>Transcription:</h3>
+        <p id="transcription"></p>
     </div>
 
     <script>
-        let mediaRecorder;
-        let audioChunks = [];
-        let isRecording = false;
-        let timerInterval;
-        let startTime;
+        const form = document.getElementById("uploadForm");
+        const transcriptionOutput = document.getElementById("transcription");
 
-        const recordButton = document.getElementById('recordButton');
-        const uploadButton = document.getElementById('uploadButton');
-        const fileInput = document.getElementById('fileInput');
-        const timerDisplay = document.getElementById('timer');
-        const loading = document.getElementById('loading');
-        const transcriptionText = document.getElementById('transcriptionText');
+        form.addEventListener("submit", async (event) => {
+            event.preventDefault();
 
-        // Update timer display
-        function updateTimer() {
-            const elapsed = Math.floor((Date.now() - startTime) / 1000);
-            const minutes = Math.floor(elapsed / 60);
-            const seconds = elapsed % 60;
-            timerDisplay.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-        }
-
-        // Handle recording
-        recordButton.addEventListener('click', async () => {
-            if (!isRecording) {
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    mediaRecorder = new MediaRecorder(stream);
-                    audioChunks = [];
-
-                    mediaRecorder.ondataavailable = (event) => {
-                        audioChunks.push(event.data);
-                    };
-
-                    mediaRecorder.onstop = async () => {
-                        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-                        await sendAudioToServer(audioBlob);
-                    };
-
-                    mediaRecorder.start();
-                    isRecording = true;
-                    recordButton.textContent = 'Stop Recording';
-                    recordButton.classList.add('recording');
-                    startTime = Date.now();
-                    timerInterval = setInterval(updateTimer, 1000);
-                } catch (err) {
-                    console.error('Error accessing microphone:', err);
-                    alert('Error accessing microphone. Please ensure you have granted microphone permissions.');
-                }
-            } else {
-                mediaRecorder.stop();
-                isRecording = false;
-                recordButton.textContent = 'Start Recording';
-                recordButton.classList.remove('recording');
-                clearInterval(timerInterval);
-                timerDisplay.textContent = '';
-            }
-        });
-
-        // Handle file upload
-        uploadButton.addEventListener('click', () => {
-            fileInput.click();
-        });
-
-        fileInput.addEventListener('change', async (event) => {
-            const file = event.target.files[0];
-            if (file) {
-                await sendAudioToServer(file);
-            }
-        });
-
-        // Send audio to server
-        async function sendAudioToServer(audioData) {
-            loading.style.display = 'block';
-            transcriptionText.textContent = 'Processing...';
-
-            const formData = new FormData();
-            formData.append('file', audioData);
+            const formData = new FormData(form);
 
             try {
-                const response = await fetch('http://localhost:5000/transcribe', {
-                    method: 'POST',
-                    body: formData
+                const response = await fetch("/transcribe", {
+                    method: "POST",
+                    body: formData,
                 });
 
-                const data = await response.json();
-                
-                if (data.status === 'success') {
-                    transcriptionText.textContent = data.transcription;
+                if (!response.ok) {
+                    throw new Error("Failed to transcribe the audio.");
+                }
+
+                const result = await response.json();
+                if (result.error) {
+                    transcriptionOutput.textContent = `Error: ${result.error}`;
                 } else {
-                    transcriptionText.textContent = 'Error: ' + data.error;
+                    transcriptionOutput.textContent = result.transcription;
                 }
             } catch (error) {
-                transcriptionText.textContent = 'Error connecting to server: ' + error.message;
-            } finally {
-                loading.style.display = 'none';
+                transcriptionOutput.textContent = `Error: ${error.message}`;
             }
-        }
+        });
     </script>
 </body>
 </html>
