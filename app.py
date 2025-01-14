@@ -165,7 +165,7 @@ def transcribe():
             # Run whisper.cpp transcription
             logger.info(f"Starting transcription process with model {model_size} and language {language}")
             result = subprocess.run(
-                [WHISPER_CPP_EXEC, "-m", model_path, "-l" language,  "-nt", "--output-txt", "-f", output_path],
+                [WHISPER_CPP_EXEC, "-m", model_path, "-l", language,  "-nt", "--output-txt", "-f", output_path],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
