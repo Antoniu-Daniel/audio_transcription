@@ -1,30 +1,16 @@
-# Install necessary dependencies
-#!pip install gradio openai-whisper torch torchaudio
+import gradio as gr import whisper import time import os
 
-import gradio as gr
-import whisper
-import torch
+def transcribe(audio, model_size): start_time = time.time() model = whisper.load_model(model_size) result = model.transcribe(audio) transcript = result["text"]
 
-# Load the Whisper model
-model = whisper.load_model("large")
+# Save transcript to a file
+txt_filename = "transcript.txt"
+with open(txt_filename, "w") as f:
+    f.write(transcript)
 
-# Define the transcription function
-def transcribe_audio(audio_file):
-    # Load the audio file
-    audio = whisper.load_audio(audio_file)
-    # Transcribe the audio
-    result = model.transcribe(audio)
-    # Return the transcribed text
-    return result["text"]
+elapsed_time = time.time() - start_time
+return transcript, txt_filename, f"Elapsed Time: {elapsed_time:.2f} seconds"
 
-# Create the Gradio interface
-interface = gr.Interface(
-    fn=transcribe_audio,
-    inputs=gr.Audio(type="filepath", label="Upload Audio File"),
-    outputs=gr.Textbox(label="Transcribed Text"),
-    title="Audio Transcription with OpenAI Whisper",
-    description="Upload an audio file to transcribe it using OpenAI's Whisper model."
-)
+gui = gr.Interface( fn=transcribe, inputs=[gr.Audio(source="upload", type="filepath"), gr.Dropdown(["medium", "large"], label="Model Size")], outputs=[gr.Textbox(label="Transcript"), gr.File(label="Download TXT"), gr.Textbox(label="Elapsed Time")], title="Whisper Transcription", description="Upload an audio file and choose a model size to transcribe it." )
 
-# Launch the Gradio app
-interface.launch(share=True)
+gui.launch()
+
