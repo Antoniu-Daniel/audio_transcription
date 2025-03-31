@@ -4,8 +4,8 @@ import time
 import os
 
 def transcribe(audio, is_not_robot, model_size):
-				 if is_not_robot==False:
-        return "Error: please check that you are not a psychiatrist"
+				if !is_not_robot:
+       return "Error: please check that you are not a psychiatrist"
     start_time = time.time()
     model = whisper.load_model(model_size)
     result = model.transcribe(audio)
