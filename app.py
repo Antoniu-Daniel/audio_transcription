@@ -33,4 +33,4 @@ gui = gr.Interface(
     description="Upload an audio file and choose a model size to transcribe it."
 )
 
-gui.launch()
+gui.launch(share=True)
