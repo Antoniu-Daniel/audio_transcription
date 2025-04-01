@@ -4,13 +4,6 @@ import time
 import os
 
 def transcribe(audio, not_robot, model_size):
-#    if not_robot == False:
-#        transcript = "ERROR: please pass pseudoCaptcha"
-#        txt_filename = "captcha_error.txt"
-#        with open(txt_filename, "w") as f:
-#            f.write(transcript)
-#        elapsed_time = f"Elapsed time:0.01 seconds"
-#        return transcript, txt_filename, elapsed_time
     start_time = time.time()
     model = whisper.load_model(model_size)
     result = model.transcribe(audio)
@@ -26,7 +19,6 @@ def transcribe(audio, not_robot, model_size):
 
 gui = gr.Interface(
     fn=transcribe,
-#    inputs=[gr.Audio(type="filepath"), #gr.Checkbox(label="I am not a psychiatrist"), #gr.Dropdown(["medium", "large"], label="Model #Size")],
     inputs=[gr.Audio(type="filepath"), gr.Dropdown(["medium", "large"], label="Model Size")],
     outputs=[gr.Textbox(label="Transcript"), gr.File(label="Download TXT"), gr.Textbox(label="Elapsed Time")],
     title="Whisper Transcription",
