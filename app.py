@@ -26,7 +26,7 @@ def transcribe(audio, not_robot, model_size):
 
 gui = gr.Interface(
     fn=transcribe,
-#    inputs=[gr.Audio(type="filepath"), gr.Checkbox(label="I am not a psychiatrist"), gr.Dropdown(["medium", "large"], label="Model Size")],
+#    inputs=[gr.Audio(type="filepath"), #gr.Checkbox(label="I am not a psychiatrist"), #gr.Dropdown(["medium", "large"], label="Model #Size")],
     inputs=[gr.Audio(type="filepath"), gr.Dropdown(["medium", "large"], label="Model Size")],
     outputs=[gr.Textbox(label="Transcript"), gr.File(label="Download TXT"), gr.Textbox(label="Elapsed Time")],
     title="Whisper Transcription",
