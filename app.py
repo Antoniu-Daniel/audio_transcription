@@ -3,7 +3,7 @@ import whisper
 import time
 import os
 
-def transcribe(audio, not_robot, model_size):
+def transcribe(audio, model_size):
     start_time = time.time()
     model = whisper.load_model(model_size)
     result = model.transcribe(audio)
