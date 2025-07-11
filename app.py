@@ -6,23 +6,10 @@ import os
 import sys
 from pathlib import Path
 
-# Color codes for terminal output
-class Colors:
-    GREEN = '\033[92m'
-    BLUE = '\033[94m'
-    YELLOW = '\033[93m'
-    RED = '\033[91m'
-    BOLD = '\033[1m'
-    END = '\033[0m'
-
-def print_colored(text, color):
-    """Print colored text to terminal"""
-    print(f"{color}{text}{Colors.END}")
-
 def print_header():
     """Print a friendly header"""
-    print_colored("\n🎵 Whisper Audio Transcription Tool 🎵", Colors.BOLD)
-    print_colored("=" * 40, Colors.BLUE)
+    print("\n🎵 Whisper Audio Transcription Tool 🎵")
+    print("=" * 40)
 
 def get_file_size(filepath):
     """Get human-readable file size"""
@@ -35,41 +22,41 @@ def get_file_size(filepath):
 
 def prompt_for_model():
     """Interactive model selection"""
-    print_colored("\n📋 Available Models:", Colors.BOLD)
+    print("\n📋 Available Models:")
     print("1. medium - Good balance of speed and accuracy")
     print("2. large  - Higher accuracy, slower processing")
     
     while True:
-        choice = input(f"\n{Colors.YELLOW}Choose model (1-2) or press Enter for medium: {Colors.END}").strip()
+        choice = input("\nChoose model (1-2) or press Enter for medium: ").strip()
         if choice == "" or choice == "1":
             return "medium"
         elif choice == "2":
             return "large"
         else:
-            print_colored("Please enter 1, 2, or press Enter for default", Colors.RED)
+            print("Please enter 1, 2, or press Enter for default")
 
 def prompt_for_audio_file():
     """Interactive file selection with validation"""
     audio_extensions = {'.wav', '.mp3', '.m4a', '.flac', '.aac', '.ogg', '.wma', '.mp4', '.mov', '.avi'}
     
     while True:
-        file_path = input(f"\n{Colors.YELLOW}Enter path to audio file: {Colors.END}").strip()
+        file_path = input("\nEnter path to audio file: ").strip()
         
         # Remove quotes if present
         file_path = file_path.strip('"\'')
         
         if not file_path:
-            print_colored("Please enter a file path", Colors.RED)
+            print("Please enter a file path")
             continue
             
         if not os.path.exists(file_path):
-            print_colored(f"File not found: {file_path}", Colors.RED)
+            print(f"File not found: {file_path}")
             continue
             
         file_ext = Path(file_path).suffix.lower()
         if file_ext not in audio_extensions:
-            print_colored(f"Unsupported file type: {file_ext}", Colors.RED)
-            print_colored(f"Supported formats: {', '.join(sorted(audio_extensions))}", Colors.BLUE)
+            print(f"Unsupported file type: {file_ext}")
+            print(f"Supported formats: {', '.join(sorted(audio_extensions))}")
             continue
             
         return file_path
@@ -78,21 +65,21 @@ def show_file_info(file_path):
     """Display file information"""
     file_size = get_file_size(file_path)
     file_name = os.path.basename(file_path)
-    print_colored(f"\n📁 File: {file_name}", Colors.BLUE)
-    print_colored(f"📊 Size: {file_size}", Colors.BLUE)
+    print(f"\n📁 File: {file_name}")
+    print(f"📊 Size: {file_size}")
 
 def transcribe_with_progress(audio_path, model_size):
     """Transcribe with user-friendly progress updates"""
-    print_colored(f"\n🔄 Loading {model_size} model...", Colors.YELLOW)
+    print(f"\n🔄 Loading {model_size} model...")
     
     start_time = time.time()
     
     try:
         model = whisper.load_model(model_size)
         load_time = time.time() - start_time
-        print_colored(f"✅ Model loaded in {load_time:.1f} seconds", Colors.GREEN)
+        print(f"✅ Model loaded in {load_time:.1f} seconds")
         
-        print_colored("🎯 Starting transcription...", Colors.YELLOW)
+        print("🎯 Starting transcription...")
         transcribe_start = time.time()
         
         result = model.transcribe(audio_path)
@@ -104,7 +91,7 @@ def transcribe_with_progress(audio_path, model_size):
         return transcript, total_time, transcribe_time
         
     except Exception as e:
-        print_colored(f"❌ Error: {str(e)}", Colors.RED)
+        print(f"❌ Error: {str(e)}")
         return None, 0, 0
 
 def save_transcript(transcript, audio_path, custom_output=None):
@@ -118,10 +105,10 @@ def save_transcript(transcript, audio_path, custom_output=None):
     try:
         with open(output_file, "w", encoding="utf-8") as f:
             f.write(transcript)
-        print_colored(f"💾 Transcript saved: {output_file}", Colors.GREEN)
+        print(f"💾 Transcript saved: {output_file}")
         return output_file
     except Exception as e:
-        print_colored(f"❌ Error saving file: {str(e)}", Colors.RED)
+        print(f"❌ Error saving file: {str(e)}")
         return None
 
 def interactive_mode():
@@ -136,7 +123,7 @@ def interactive_mode():
     model_size = prompt_for_model()
     
     # Ask about output file
-    custom_output = input(f"\n{Colors.YELLOW}Custom output filename (or press Enter for auto): {Colors.END}").strip()
+    custom_output = input("\nCustom output filename (or press Enter for auto): ").strip()
     if not custom_output:
         custom_output = None
     
@@ -152,17 +139,17 @@ def interactive_mode():
         return 1
     
     # Show results
-    print_colored(f"\n🎉 Transcription Complete!", Colors.GREEN)
-    print_colored(f"⏱️  Total time: {total_time:.1f} seconds", Colors.BLUE)
-    print_colored(f"📝 Transcript length: {len(transcript)} characters", Colors.BLUE)
+    print(f"\n🎉 Transcription Complete!")
+    print(f"⏱️  Total time: {total_time:.1f} seconds")
+    print(f"📝 Transcript length: {len(transcript)} characters")
     
     # Ask if user wants to see transcript
-    show_transcript = input(f"\n{Colors.YELLOW}Show transcript? (y/N): {Colors.END}").strip().lower()
+    show_transcript = input("\nShow transcript? (y/N): ").strip().lower()
     if show_transcript in ['y', 'yes']:
-        print_colored("\n📄 Transcript:", Colors.BOLD)
-        print_colored("-" * 50, Colors.BLUE)
+        print("\n📄 Transcript:")
+        print("-" * 50)
         print(transcript)
-        print_colored("-" * 50, Colors.BLUE)
+        print("-" * 50)
     
     return 0
 
@@ -216,7 +203,7 @@ Examples:
     
     # Validate audio file
     if not os.path.exists(args.audio_file):
-        print_colored(f"❌ Error: Audio file '{args.audio_file}' not found", Colors.RED)
+        print(f"❌ Error: Audio file '{args.audio_file}' not found")
         return 1
     
     # Use provided or prompt for model
@@ -252,16 +239,16 @@ Examples:
     
     # Show results
     if not args.quiet:
-        print_colored(f"\n🎉 Transcription Complete!", Colors.GREEN)
-        print_colored(f"⏱️  Total time: {total_time:.1f} seconds", Colors.BLUE)
-        print_colored(f"📝 Transcript length: {len(transcript)} characters", Colors.BLUE)
+        print(f"\n🎉 Transcription Complete!")
+        print(f"⏱️  Total time: {total_time:.1f} seconds")
+        print(f"📝 Transcript length: {len(transcript)} characters")
     
     # Show transcript if requested
     if args.show:
-        print_colored("\n📄 Transcript:", Colors.BOLD)
-        print_colored("-" * 50, Colors.BLUE)
+        print("\n📄 Transcript:")
+        print("-" * 50)
         print(transcript)
-        print_colored("-" * 50, Colors.BLUE)
+        print("-" * 50)
     
     return 0
 
@@ -269,5 +256,5 @@ if __name__ == "__main__":
     try:
         sys.exit(main())
     except KeyboardInterrupt:
-        print_colored("\n\n👋 Goodbye!", Colors.YELLOW)
+        print("\n\n👋 Goodbye!")
         sys.exit(0)
