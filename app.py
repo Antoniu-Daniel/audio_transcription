@@ -17,7 +17,7 @@ class Colors:
 
 def print_colored(text, color):
     """Print colored text to terminal"""
-    print(f"{text}")
+    print(f"{color}{text}{Colors.END}")
 
 def print_header():
     """Print a friendly header"""
